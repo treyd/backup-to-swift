@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# This script is run by 'incron' (inotify + cron)
+# If incron isn't installed, install it with:
+# 
+#  apt-get install incron
+#  yum install incron
+#
+# Allow users to run incron but editing /etc/incron.allow. If you only want
+# root to be able to run incron, just put the word 'root' in the file.
+#
+# You need to set up an incrontab entry using:
+#
+#  incrontab -e
+#
+# To effectively use this for backups to a Swift cluster, your incrontab entry
+# should look something like:
+#
+# /path/to/watched/dir/ IN_CLOSE_WRITE,IN_MOVE /usr/local/bin/backup-to-swift $#
+#
+# With a backup script running locally on the machine, dump the data into
+# /path/to/watched/dir/. This script will then take the backup and upload it
+# to Swift.
+
+BASE_DIR=/path/to/watched/dir
+WATCH_DIR=$BASE_DIR/dump
+
+SWIFT_CLUSTER="my.swiftcluster.com"    # This is only used for the log file
+SWIFT_CREDS=/path/to/credentials/file  # Swift credentials and auth URL
+SWIFT_CONTAINER=$(hostname -f)         # Name the container whatever you want
+SWIFT_COMMAND="upload"
+
+SEGMENT_SIZE="256M"
+
+# Number of days until object is deleted
+RETENTION_DAYS=30
+
+# Auto-expire object after N RETENTION_DAYS
+DELETE_AFTER=$RETENTION_DAYS*24*60*60
+
+# Only upload files with these extensions
+FILE_EXT="log,lzo,gzip"
+
+LOG_DIR=$BASE_DIR/log
+LOG_FILE=backup-$(date "+%Y%m%d").log
+
+logline() {
+  while IFS= read -r LINE; do
+    echo "$(hostname) $(date "+%Y-%m-%d %H:%M:%S") $SWIFT_CLUSTER $SWIFT_COMMAND $LINE"
+  done
+}
+
+upload() {
+  sleep 5
+  source $SWIFT_CREDS
+  cd $WATCH_DIR
+  /usr/local/bin/swift $SWIFT_COMMAND --changed -S $SEGMENT_SIZE --use-slo -H "X-Delete-After: $DELETE_AFTER" $SWIFT_CONTAINER *.{$FILE_EXT} | logline >> $LOG_DIR/$LOG_FILE
+}
+
+### MAIN SCRIPT ###
+upload
+
