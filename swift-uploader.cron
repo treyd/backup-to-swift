@@ -1,0 +1,1 @@
+/data/dump IN_CLOSE_WRITE,IN_MOVE /usr/local/bin/backup-to-swift $#
