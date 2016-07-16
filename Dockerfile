@@ -11,4 +11,4 @@ RUN chmod +x /usr/local/bin/backup-to-swift
 
 COPY swift-uploader.cron /etc/incron.d/swift-uploader.cron
 
-CMD service incron start
+CMD /usr/sbin/incrond -n

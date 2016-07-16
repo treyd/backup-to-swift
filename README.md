@@ -13,7 +13,7 @@ Within that directory should be a directory called `dump`
 
     $ docker run -v /path/to/swift-creds:/root/swift.env \
         -v /path/to/local/dir:/data
-        swift-uploader 
+        -d swift-uploader 
 
 ## Building
      docker build . --rm=false -t swift-uploader
